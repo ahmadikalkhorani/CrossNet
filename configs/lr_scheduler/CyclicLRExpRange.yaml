@@ -1,0 +1,12 @@
+model:
+  lr_scheduler:
+    [
+      "CyclicLR",
+      {
+        "base_lr": 1E-6,
+        "max_lr": 1E-4,
+        "step_size_up": 20,
+        "gamma": 0.9,
+        "cycle_momentum": false,
+      },
+    ]

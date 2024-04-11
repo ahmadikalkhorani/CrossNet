@@ -1,0 +1,11 @@
+jsonargparse[signatures,urls]>=4.3.1y
+torchmetrics[audio]
+omegaconf
+pytorch-lightning>=2.0.0
+pandas
+numpy
+rich
+mir_eval
+soundfile
+pesq
+linear_attention_transformer

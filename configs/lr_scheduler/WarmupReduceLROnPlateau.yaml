@@ -1,0 +1,14 @@
+model:
+  lr_scheduler:
+    [
+      WarmupReduceLROnPlateauScheduler,
+      {
+        "warmup_steps": 20,
+        "peak_lr": 1E-3,
+        "init_lr": 1E-5,
+        "factor": 0.9,
+        "patience": 3,
+        "min_lr": 1E-6,
+        "threshold": 0.01,
+      },
+    ]

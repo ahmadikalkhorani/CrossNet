@@ -1,0 +1,63 @@
+seed_everything: 2
+trainer:
+  gradient_clip_val: 2
+  gradient_clip_algorithm: norm
+  devices: null
+  accelerator: gpu
+  strategy: ddp_find_unused_parameters_false
+  sync_batchnorm: false
+  precision: 16-mixed
+model:
+  arch:
+    class_path: models.arch.CrossNet_V3.CrossNetV3
+    init_args:
+      num_layers: 12
+      encoder_kernel_size: 5
+      dim_hidden: 192
+      dim_ffn: 384
+      num_heads: 4
+      dropout: [0, 0, 0]
+      kernel_size: [5, 3]
+      conv_groups: [8, 8]
+      norms: ["LN", "LN", "GN", "LN", "LN", "LN"]
+      dim_squeeze: 16 # 16 for large
+      num_freqs: 65
+      full_share: 0
+      positional_encoding: True
+      positional_encoding_type: random_chunk
+  channels: [0, 1, 2, 3, 4, 5]
+  ref_channel: 0
+  stft:
+    class_path: models.io.stft.STFT
+    init_args:
+      n_fft: 128
+      n_hop: 64
+  loss:
+    class_path: models.io.loss.Loss
+    init_args:
+      loss_func: models.io.loss.neg_si_sdr
+      pit: True
+  norm:
+    class_path: models.io.norm.Norm
+    init_args:
+      mode: frequency
+  optimizer: [Adam, { lr: 0.001 }]
+  lr_scheduler: [ExponentialLR, { gamma: 0.99 }]
+  exp_name: exp
+  metrics: [SNR, SDR, SI_SDR, NB_PESQ, WB_PESQ, eSTOI, STOI]
+  val_metric: loss
+model_checkpoint:
+  dirpath: null
+  filename: epoch{epoch}_neg_si_sdr_{val/neg_si_sdr:.4f}
+  monitor: val/neg_si_sdr
+  verbose: false
+  save_last: true
+  save_top_k: 5
+  save_weights_only: false
+  mode: min
+  auto_insert_metric_name: false
+  every_n_train_steps: null
+  train_time_interval: null
+  every_n_epochs: 1
+  save_on_train_epoch_end: null
+

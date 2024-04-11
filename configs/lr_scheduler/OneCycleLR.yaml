@@ -1,0 +1,12 @@
+model:
+  lr_scheduler:
+    [
+      "OneCycleLR",
+      {
+        "pct_start": 0.2,
+        "max_lr": 1E-4,
+        "steps_per_epoch": 1,
+        "epochs": 200,
+        "cycle_momentum": false,
+      },
+    ]

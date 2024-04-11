@@ -1,0 +1,2 @@
+model:
+  lr_scheduler: ['ReduceLROnPlateau', {'mode': 'min', 'factor': 0.9, 'patience': 3,'min_lr': 1e-8,}]

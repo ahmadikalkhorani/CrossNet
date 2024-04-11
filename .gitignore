@@ -1,0 +1,17 @@
+__pycache__
+.mypy_cache
+.vscode
+lightning_logs
+logs
+*.log
+*.out
+*.ckpt
+*.png 
+*.pdf 
+*.svg
+*.mp4
+*.gif
+results*.json
+_*.pt
+tmp/
+beamformed*/

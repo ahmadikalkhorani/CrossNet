@@ -1,0 +1,8 @@
+data:
+  class_path: data_loaders.sms_wsj.SmsWsjDataModule
+  init_args:
+    sms_wsj_dir: /path/to/sms_wsj/dir
+    target: direct
+    audio_time_len: [4.0, 4.0, null]
+    batch_size: [4, 4]
+    test_set: test
