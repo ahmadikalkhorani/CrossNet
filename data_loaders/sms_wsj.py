@@ -13,59 +13,7 @@ from torch.utils.data import DataLoader, Dataset
 import copy
 from scipy.signal import resample_poly
 from os.path import *
-import pysptk 
 
-
-def find_pitch_order(ref_chunk, sr):
-    if isinstance(ref_chunk, torch.Tensor):
-        ref_chunk = ref_chunk.numpy() 
-        ref_chunk = ref_chunk.squeeze(1)
-    ref_chunk = ref_chunk.astype(np.float32)
-    ref_chunk = np.clip(ref_chunk * 32767.0, -32768, 32767).astype(np.int16).astype(np.float32)
-    pitches = [pysptk.sptk.rapt(ref, sr, 160, min=60, max=404, voice_bias=0.0, otype='f0') for ref in ref_chunk]
-    average_pitch = []
-    for pitch in pitches:
-        valid_pitches = pitch[pitch > 0]
-        # if any single pitch array is empty, the function ignores the pitch information from all other chunks, regardless of whether they contain valid pitch data.
-        if valid_pitches.size > 0:
-            mean_pitch = np.mean(valid_pitches)
-        else:
-            return np.arange(len(pitches)) # return the original order (ordered based on utterance-wise pitch not chunk-wise pitch)
-        average_pitch.append(mean_pitch)
-    # Return the indices that would sort the average_pitch array
-    order = np.argsort(average_pitch)
-    return order, list(np.sort(average_pitch).round(3))
-  
-def determine_assignment_smswsj(info):
-    def cart2sph(coord, rotation_xyz):
-        x,y,z = coord
-        azimuth = np.arctan2(y,x)
-        elevation = np.arctan2(z,np.sqrt(x**2 + y**2))
-        r = np.sqrt(x**2 + y**2 + z**2)
-
-
-        azimuth_deg = np.rad2deg(azimuth)
-        rotate_z = np.rad2deg(rotation_xyz[-1])
-        azimuth_adjusted = azimuth_deg - rotate_z
-
-        azimuth_bounded = azimuth_adjusted% 360
-
-        #print(azimuth, rotation_xyz, azimuth_deg, rotate_z, 'azimuth_adjusted', azimuth_adjusted, 'azimuth_bounded', azimuth_bounded)
-
-        return np.array([r, azimuth_bounded, np.rad2deg(elevation)% 360])
-    
-    center = np.array(info['center']) #shape = [3,1]
-    spk_pos = np.array(info["source_position"]) #3,2
-    rotation_xyz = np.array(info["rotation_xyz"]) # shape = 3,
-    spk_pos_to_center = spk_pos - center #3,2
-
-    
-    spk_pos_to_center_sph = [cart2sph(spk_pos_to_center[:,i], rotation_xyz) for i in range(spk_pos.shape[1])] 
-    spk_pos_to_center_sph = np.array(spk_pos_to_center_sph) #2,3
-
-    order = np.argsort(spk_pos_to_center_sph[:,1])
-    
-    return order
 
 
 
@@ -133,7 +81,6 @@ class SmsWsjDataset(Dataset):
                  ref_channel: int = 0, 
                  num_spk: int = 2, 
                  fuss_dir: str = None, 
-                 ordering: str = None, 
                  ) -> None:
         """The SMS-WSJ dataset
 
@@ -153,7 +100,7 @@ class SmsWsjDataset(Dataset):
         self.dataset = dataset
         self.audio_time_len = audio_time_len
         self.ref_channel = ref_channel 
-        self.order = ordering
+
         self.sample_rate = 8000
 
         with open(self.sms_wsj_dir / 'sms_wsj.json', 'r') as f:
@@ -179,18 +126,8 @@ class SmsWsjDataset(Dataset):
 
         self.non_speech_dir = fuss_dir
 
-    def reorder(self, y, p):  
-        if self.order == "pitch":
-            order, p["pitch"] = find_pitch_order(y[:, :1, :], sr = self.sample_rate)
-        else: 
-            return y, p
-            
-        if list(order) != [i for i in range(y.shape[0])]: 
-            y = y[order]
-            p['saveto'] = p['saveto'].reverse()
-            p['target'] = p['target'].reverse()
-            
-        return y, p
+    
+    
     
     def __getitem__(self, index):
         name = self.observations[index % len(self.observations)].name
@@ -338,7 +275,7 @@ class SmsWsjDataset(Dataset):
             x = torch.as_tensor(mix, dtype=torch.float32) 
             y = torch.as_tensor(target, dtype=torch.float32)
             
-            y, paras = self.reorder(y, paras)
+
             
             return x, y, paras
         except Exception as err:
@@ -429,7 +366,7 @@ class SmsWsjDataModule(LightningDataModule):
         # prefetch how many samples, will increase the memory occupied when pin_memory=True
         prefetch_factor: int = 5,
         persistent_workers: bool = False,
-        ordering: str = None, 
+
     ):
         super().__init__()
         self.sms_wsj_dir = sms_wsj_dir
@@ -464,7 +401,7 @@ class SmsWsjDataModule(LightningDataModule):
 
         self.pin_memory = pin_memory
         self.prefetch_factor = prefetch_factor
-        self.ordering = ordering
+
 
     def prepare_data(self):
         ...
@@ -478,7 +415,6 @@ class SmsWsjDataModule(LightningDataModule):
             ref_channel=self.ref_channel,
             num_spk=self.num_spk,
             fuss_dir=self.fuss_dir,
-            ordering = self.ordering,
         )
         self.val = SmsWsjDataset(
             sms_wsj_dir=self.sms_wsj_dir,
