@@ -1,6 +1,6 @@
 
 data:
-  class_path: data_loaders.wsj_2mix_1ch.SS_SemiOnlineDataModule
+  class_path: data_loaders.wsj_2mix.SS_SemiOnlineDataModule
   init_args:
     clean_speech_dir: /path/to/wsj0-2mix/2speakers/wav8k/min/tr/
     sample_rate: 8000
